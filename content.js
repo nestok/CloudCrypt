@@ -4,23 +4,33 @@
     elem.addEventListener('dragover', handleDragOver, false);
     elem.addEventListener('drop', handleFileSelect, false);
 
+    // smth don't work
+    document.addEventListener("DOMContentLoaded", function (event) {
+        function getElementByXpath(path) {
+            return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        }
+        let input = getElementByXpath("/html/body/input");
+        console.log(input);
+        input.addEventListener("change", function (event) {
+            var i = 0,
+                files = control.files,
+                len = files.length;
+
+            for (; i < len; i++) {
+                console.log("Filename: " + files[i].name);
+                console.log("Type: " + files[i].type);
+                console.log("Size: " + files[i].size + " bytes");
+            }
+
+        }, false);
+    });
+
 
     let re = "https://www.dropbox.com/";
     if (document.location.href.match(re) !== null) {
         document.addEventListener("click", function () {
             let el = document.getElementsByClassName('action-upload');
-            //var file = el[0].files[0];
-            //var fReader = new FileReader();
-            //fReader.onload = (function (aFile) {
-            //    return function (e) {
-            //        var span = document.createElement('span');
-            //        span.innerHTML = ['<img class="images" src="', e.target.result, '" title="', aFile.name, '"/>'].join('');
-            //        document.getElementById('thumbs').insertBefore(span, null);
-            //    };
-            //})(f);
-            //fReader.readAsDataURL(file);
-            //el[0].addEventListener("click", function () {
-            //});
+
             el[0].addEventListener('change', handleFileSelect, false);
         });
     }
@@ -37,12 +47,37 @@ function handleFileSelect(evt) {
     var reader = new FileReader();
 
     reader.onload = function (e) {
-        //var encrypted = CryptoJS.AES.encrypt(e.target.result, "AAA");
-        var encrypted = CryptoJS.AES.decrypt(e.target.result, "AAA");
-        console.log(encrypted.toString(CryptoJS.enc.Latin1));
-        var encryptedFile = new File([encrypted], file.name + '.encrypted', { type: "text/plain", lastModified: new Date() });
-        console.log(encrypted);
-        console.log(encryptedFile);
+        console.log(e.target);
+        console.log(e.target.result);
+
+        CryptoJS.enc.u8array = {
+            stringify: function (wordArray) {
+                var words = wordArray.words;
+                var sigBytes = wordArray.sigBytes;
+                var u8 = new Uint8Array(sigBytes);
+                for (var i = 0; i < sigBytes; i++) {
+                    var byte = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+                    u8[i] = byte;
+                }
+                return u8;
+            },
+            parse: function (u8arr) {
+                var len = u8arr.length;
+                var words = [];
+                for (var i = 0; i < len; i++) {
+                    words[i >>> 2] |= (u8arr[i] & 0xff) << (24 - (i % 4) * 8);
+                }
+                return CryptoJS.lib.WordArray.create(words, len);
+            }
+        };
+        var array = new Uint8Array(e.target.result);
+        var pt = CryptoJS.enc.u8array.parse(array);
+        var encrypted = CryptoJS.AES.encrypt(pt, "AAA");
+
+        var decrypted = CryptoJS.AES.decrypt(encrypted, "AAA");
+        var arr = CryptoJS.enc.u8array.stringify(decrypted);
+
+
         let dropboxToken = "ngn5QWkYQ6AAAAAAAAAAFyI3UQqj8c3vdIQSAJrtVA9UAds_agDsqiRh4c5wJF6a"
         xhr.open('POST', 'https://content.dropboxapi.com/2/files/upload');
         xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
@@ -54,11 +89,9 @@ function handleFileSelect(evt) {
             mute: false
         }));
 
-        xhr.send(encryptedFile);
-
-
+        xhr.send(arr);
     }
-    reader.readAsDataURL(file);
+    reader.readAsArrayBuffer(file);
 
     // files is a FileList of File objects. List some properties.
     let output = [];
@@ -68,8 +101,6 @@ function handleFileSelect(evt) {
         console.log(files.item(0));
     }
     console.log(output);
-    //var decrypted = CryptoJS.AES.decrypt(e.target.result, password)
-    //                                    .toString(CryptoJS.enc.Latin1);
 
 
 
@@ -90,6 +121,8 @@ function handleFileSelect(evt) {
         }
     };
 }
+
+
 
 function onInitFs(fs) {
 
