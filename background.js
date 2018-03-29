@@ -2,10 +2,31 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   chrome.debugger.attach({tabId:tab.id}, version,
       onAttach.bind(null, tab.id));
 });
-alert(chrome.fileSystem);
-chrome.fileSystem.getDisplayPath(files[0], function (path) {
-    alert(chrome.fileSystem);
-});
+
+//chrome.downloads.onChanged.addListener(function (detail) {
+//    if (detail.state.current == "complete") {
+//        let downloadId = detail.id;
+//        try {
+//            chrome.downloads.search({ id: downloadId, limit: 1 }, function (file) {
+
+//                let xhr = new XMLHttpRequest();
+
+//                xhr.onreadystatechange = function () {
+//                    if (this.readyState == 4) {
+//                        file.blobData = this.response;
+//                        alert(this.response);
+//                    }
+//                }
+//                xhr.open('GET', "file://" + file.filename);
+//                xhr.send();
+//            });
+//        }
+//        catch (err)
+//        {
+//            alert(err);
+//        }
+//    }
+//});
 
 var version = "1.0";
 
