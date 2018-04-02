@@ -8,65 +8,15 @@
     if (document.location.href.match(re) !== null) {
         document.addEventListener("click", function () {
 
-            //найти кнопки по классу, добраться до row их родителей, выбрать роу id, и заходить в дропбокс и брать файл или просто брать название файла и скачивать файл с таким названием
+        }, false);
+        document.addEventListener("click", function () {
+
             let elements = document.getElementsByClassName('action-download');
             for (let i = 0; i < elements.length; i++) {
+                elements[i].addEventListener('click', downloadClick, false);
                 console.log(elements[i]);
             }
             
-            let path = "/" + "3.docx";
-            //let path = "/" + "1.docx";
-            let dropboxToken = "ngn5QWkYQ6AAAAAAAAAAFyI3UQqj8c3vdIQSAJrtVA9UAds_agDsqiRh4c5wJF6a";
-
-            let xhr = new XMLHttpRequest( ) ;                                              
-            xhr.onreadystatechange = function( )                                           
-            {                                                                               
-                if ( xhr.readyState == XMLHttpRequest.DONE)                                  
-                {                                                                             
-                    if (xhr.status == 200)                                                     
-                    {
-                        //let array = new Uint8Array(xhr.response);
-                        //let pt = CryptoJS.enc.u8array.parse(array);
-                        
-                        //let decrypted = CryptoJS.AES.decrypt(xhr.response, "AAA");
-                        //let decrypted1 = CryptoJS.AES.decrypt(pt, "AAA");
-                        //let decrypted2 = CryptoJS.AES.decrypt(array, "AAA");
-
-                        var salt = CryptoJS.enc.Hex.parse(xhr.response.substr(0, 32));
-                        var iv = CryptoJS.enc.Hex.parse(xhr.response.substr(32, 32))
-                        var encrypted = xhr.response.substring(64);
-
-                        var decrypted = CryptoJS.AES.decrypt(encrypted, "AAA", {
-                            iv: iv,
-                            padding: CryptoJS.pad.Pkcs7,
-                            mode: CryptoJS.mode.CBC
-
-                        })
-                        let arr = CryptoJS.enc.u8array.stringify(decrypted);
-
-                        window.URL = window.URL || window.webkitURL;
-                        let blob = new Blob([arr]);//, { type: "application/pdf" });
-                        let a = document.createElement('a');
-                        a.download = "3.docx";
-                        a.href = window.URL.createObjectURL(blob);
-                        a.click();
-
-                    } else                                                                      
-                    {                                                                           
-                        let msg = 'status:' + xhr.status;
-                        console.log(msg + 'Unable to download file');                                                      
-                    }                                                                           
-                }                                                                             
-            } ;                                                                             
- 
-            let runAsync = true ; 
-            xhr.open('POST', 'https://content.dropboxapi.com/2/files/download', runAsync);
-            //xhr.responseType = 'arraybuffer';
-            xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
-            xhr.setRequestHeader('Dropbox-API-Arg', JSON.stringify({ path: path })) ;     
-            xhr.send();
-
-
             //Btn search input file (don't working)
             //let elements = document.getElementsByTagName('input');
             //for (let i = 0; i < elements.length; i++) {
@@ -92,6 +42,66 @@
 
 } else {
     alert('The File APIs are not fully supported in this browser.');
+}
+
+function downloadClick(evt) {
+    evt.stopPropagation();
+    evt.preventDefault();
+    let downloadFileLine = document.getElementsByClassName('mc-media-row-selected');
+    let fileLink = downloadFileLine[0].parentNode.getAttribute("href");
+
+    let index = fileLink.lastIndexOf("?role");
+    let filepath = fileLink.substring(0, fileLink.lastIndexOf("?role")).replace("https://www.dropbox.com/preview", "");
+    downloadFile(filepath);
+}
+
+function downloadFile(path) {
+    let dropboxToken = "ngn5QWkYQ6AAAAAAAAAAFyI3UQqj8c3vdIQSAJrtVA9UAds_agDsqiRh4c5wJF6a";
+
+    let xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == XMLHttpRequest.DONE) {
+            if (xhr.status == 200) {
+                //let array = new Uint8Array(xhr.response);
+                //let pt = CryptoJS.enc.u8array.parse(array);
+
+                //let decrypted = CryptoJS.AES.decrypt(xhr.response, "AAA");
+                //let decrypted1 = CryptoJS.AES.decrypt(pt, "AAA");
+                //let decrypted2 = CryptoJS.AES.decrypt(array, "AAA");
+
+                var salt = CryptoJS.enc.Hex.parse(xhr.response.substr(0, 32));
+                var iv = CryptoJS.enc.Hex.parse(xhr.response.substr(32, 32))
+                var encrypted = xhr.response.substring(64);
+
+                var decrypted = CryptoJS.AES.decrypt(encrypted, "AAA", {
+                    iv: iv,
+                    padding: CryptoJS.pad.Pkcs7,
+                    mode: CryptoJS.mode.CBC
+
+                })
+                let arr = CryptoJS.enc.u8array.stringify(decrypted);
+
+                window.URL = window.URL || window.webkitURL;
+                let blob = new Blob([arr]);//, { type: "application/pdf" });
+                let a = document.createElement('a');
+                let filename = path.replace(/^.*[\\\/]/, '')
+                a.download = filename;
+                a.href = window.URL.createObjectURL(blob);
+                a.click();
+
+            } else {
+                let msg = 'status:' + xhr.status;
+                console.log(msg + 'Unable to download file');
+            }
+        }
+    };
+
+    let runAsync = true ; 
+    xhr.open('POST', 'https://content.dropboxapi.com/2/files/download', runAsync);
+    //xhr.responseType = 'arraybuffer';
+    xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
+    xhr.setRequestHeader('Dropbox-API-Arg', JSON.stringify({ path: path }));
+    xhr.send();
 }
 
 function handleFileSelect(evt) {
