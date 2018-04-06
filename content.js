@@ -1,55 +1,67 @@
 ﻿if (window.File && window.FileReader && window.FileList && window.Blob) {
-  
-    let elem = document.getElementById("embedded-app");
-    elem.addEventListener('dragover', handleDragOver, false);
-    elem.addEventListener('drop', handleFileSelect, false);
-
-    let re = "https://www.dropbox.com/";
-    if (document.location.href.match(re) !== null) {
-        document.addEventListener("click", function () {
-
-        }, false);
-        document.addEventListener("click", function () {
-
-            let elements = document.getElementsByClassName('action-download');
-            for (let i = 0; i < elements.length; i++) {
-                elements[i].addEventListener('click', downloadClick, false);
-                console.log(elements[i]);
-            }
-            
-            //Btn search input file (don't working)
-            //let elements = document.getElementsByTagName('input');
-            //for (let i = 0; i < elements.length; i++) {
-            //    if ((elements[i].getAttribute("type") == "file") && (elements[i].hasAttribute("multiple")) && (elements[i].hasAttribute("accept"))) {
-            //        let input = elements[i];
-            //        console.log(input);
-            //        input.addEventListener("change", function (event) {
-            //            console.log(input);
-
-            //            let files = event.target.files;
-            //            let i = 0, len = files.length;
-
-            //            for (; i < len; i++) {
-            //                console.log("Filename: " + files[i].name);
-            //                console.log("Type: " + files[i].type);
-            //                console.log("Size: " + files[i].size + " bytes");
-            //            }
-            //        }, false);
-            //    }
-            //}
-        }, false);
+    let reH = "https://www.dropbox.com/h";
+    let reHome = "https://www.dropbox.com/home";
+    let rePersonal = "https://www.dropbox.com/personal";
+    let currentHref = document.location.href;
+    if ((currentHref.match(reH) !== null) || (currentHref.match(reHome) !== null) || (currentHref.match(rePersonal) !== null)) {
+        let elem = document.body;
+        elem.addEventListener('dragover', handleDragOver, false);
+        elem.addEventListener('drop', handleFileSelect, false);
+        elem.onload = enableEvents();
     }
-
 } else {
     alert('The File APIs are not fully supported in this browser.');
 }
 
+function enableEvents() {
+    document.addEventListener("mousedown", function () {
+        let elements = document.getElementsByClassName('action-download');
+
+        for (let i = 0; i < elements.length; i++) {
+            elements[i].addEventListener('click', downloadClick, false);
+            console.log(elements[i]);
+        }
+
+        //Btn search input file (don't working)
+        //let elements = document.getElementsByTagName('input');
+        //for (let i = 0; i < elements.length; i++) {
+        //    if ((elements[i].getAttribute("type") == "file") && (elements[i].hasAttribute("multiple")) && (elements[i].hasAttribute("accept"))) {
+        //        let input = elements[i];
+        //        console.log(input);
+        //        input.addEventListener("change", function (event) {
+        //            console.log(input);
+
+        //            let files = event.target.files;
+        //            let i = 0, len = files.length;
+
+        //            for (; i < len; i++) {
+        //                console.log("Filename: " + files[i].name);
+        //                console.log("Type: " + files[i].type);
+        //                console.log("Size: " + files[i].size + " bytes");
+        //            }
+        //        }, false);
+        //    }
+        //}
+
+    }, false);
+}
+
+
+
 function downloadClick(evt) {
     evt.stopPropagation();
     evt.preventDefault();
-    let downloadFileLine = document.getElementsByClassName('mc-media-row-selected');
-    let fileLink = downloadFileLine[0].parentNode.getAttribute("href");
-
+    let fileLink = undefined;
+    if (this.attributes.hasOwnProperty("role")) {
+        let parent = this.parentNode;
+        while (!(fileLink = parent.parentNode.getAttribute("href"))) {
+            parent = parent.parentNode;
+        }
+    }
+    else {
+        let downloadFileLine = document.getElementsByClassName('mc-media-row-selected');
+        fileLink = downloadFileLine[0].parentNode.getAttribute("href");
+    }
     let index = fileLink.lastIndexOf("?role");
     let filepath = fileLink.substring(0, fileLink.lastIndexOf("?role")).replace("https://www.dropbox.com/preview", "");
     downloadFile(filepath);
