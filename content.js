@@ -104,11 +104,8 @@ function downloadFile(path) {
     xhr.send();
 }
 
-function handleFileSelect(evt) {
-    evt.stopPropagation();
-    evt.preventDefault();
-    let files = evt.dataTransfer.files; // FileList object.
-    let file = files[0];
+function uploadFile(file) {
+    let xhr = new XMLHttpRequest();
     let reader = new FileReader();
 
     reader.onload = function (e) {
@@ -123,7 +120,7 @@ function handleFileSelect(evt) {
         let salt = CryptoJS.lib.WordArray.random(128 / 8);
         let iv = CryptoJS.lib.WordArray.random(128 / 8);
         let encrypted1 = CryptoJS.AES.encrypt(pt, "AAA", {
-            iv: iv, 
+            iv: iv,
             padding: CryptoJS.pad.Pkcs7,
             mode: CryptoJS.mode.CBC
         });
@@ -149,18 +146,6 @@ function handleFileSelect(evt) {
     }
     reader.readAsArrayBuffer(file);
 
-    // files is a FileList of File objects. List some properties.
-    let output = [];
-
-    for (let i = 0, f; f = files[i]; i++) {
-        output.push(escape(f.name), f.type, f.size, f.lastModifiedDate.toLocaleDateString());
-        console.log(files.item(0));
-    }
-    console.log(output);
-
-
-
-    var xhr = new XMLHttpRequest();
     xhr.upload.onprogress = function (evt) {
         let percentComplete = parseInt(100.0 * evt.loaded / evt.total);
         // Upload in progress. Do something here with the percent complete.
@@ -177,6 +162,16 @@ function handleFileSelect(evt) {
             console.log(msg + errorMessage);
         }
     };
+}
+
+function handleFileSelect(evt) {
+    evt.stopPropagation();
+    evt.preventDefault();
+    let files = evt.dataTransfer.files;
+    
+    for (let i in files) {
+        uploadFile(files[i]);
+    }
 }
 
 function handleDragOver(evt) {
