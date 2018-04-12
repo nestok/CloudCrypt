@@ -1,12 +1,20 @@
 <html>
 <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <title>CloudCrypt - Options</title>
     <script src="options.js"></script>
-    <link rel="stylesheet" href="Style.css">
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/Style.css">
 </head>
 <body>
-    <h2>Cloud Cryptor</h2>
-    <div><p>Encryption key: </p><input id="keyInput"></div>
-    <input name="enableCrypt" value="Enable Crypt" type="button" id="enableCrypt" class="button-style">
+    <div class="row" style="margin-left: 30px;">
+        <h2>Cloud Cryptor</h2>
+        <form>
+            <fieldset>
+                <label>Encryption key:</label>
+                <input id="keyInput" type="password" class="form-control input_size" placeholder="Enter your key...">
+            </fieldset>
+            <input name="enableCrypt" value="Enable Crypt" type="button" id="enableCrypt" class="btn btn-primary btn-lg">
+        </form>
+</div>
 </body>
 </html>

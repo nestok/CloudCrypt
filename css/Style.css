@@ -3,13 +3,13 @@ body{
     padding: 10;
 }
 
-.button-style{
-    border: 1px solid black;
-    background: white;
-    color: black;
-    margin-top: 20px;
-    width: 100px;
-    height: 20px;
+.input_size{
+    width: 200px;
+}
+
+fieldset{
+    margin-top: 40;
+    margin-bottom: 20;	
 }
 
 #middle{

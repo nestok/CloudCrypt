@@ -81,25 +81,31 @@ function downloadFile(path) {
                 //let decrypted1 = CryptoJS.AES.decrypt(pt, "AAA");
                 //let decrypted2 = CryptoJS.AES.decrypt(array, "AAA");
 
-                var salt = CryptoJS.enc.Hex.parse(xhr.response.substr(0, 32));
-                var iv = CryptoJS.enc.Hex.parse(xhr.response.substr(32, 32))
-                var encrypted = xhr.response.substring(64);
+                let salt = CryptoJS.enc.Hex.parse(xhr.response.substr(0, 32));
+                let iv = CryptoJS.enc.Hex.parse(xhr.response.substr(32, 32))
+                let encrypted = xhr.response.substring(64);
 
-                var decrypted = CryptoJS.AES.decrypt(encrypted, "AAA", {
-                    iv: iv,
-                    padding: CryptoJS.pad.Pkcs7,
-                    mode: CryptoJS.mode.CBC
+                let encKey = undefined;
+                chrome.storage.local.get('encryprionKey', function (data) {
+                    encKey = data.encryprionKey;
+                    let decrypted = CryptoJS.AES.decrypt(encrypted, encKey, {
+                        iv: iv,
+                        padding: CryptoJS.pad.Pkcs7,
+                        mode: CryptoJS.mode.CBC
 
-                })
-                let arr = CryptoJS.enc.u8array.stringify(decrypted);
+                    })
+                    let arr = CryptoJS.enc.u8array.stringify(decrypted);
 
-                window.URL = window.URL || window.webkitURL;
-                let blob = new Blob([arr]);//, { type: "application/pdf" });
-                let a = document.createElement('a');
-                let filename = path.replace(/^.*[\\\/]/, '')
-                a.download = filename;
-                a.href = window.URL.createObjectURL(blob);
-                a.click();
+                    window.URL = window.URL || window.webkitURL;
+                    let blob = new Blob([arr]);//, { type: "application/pdf" });
+                    let a = document.createElement('a');
+                    let filename = path.replace(/^.*[\\\/]/, '')
+                    a.download = filename;
+                    a.href = window.URL.createObjectURL(blob);
+                    a.click();
+                });
+
+                
 
             } else {
                 let msg = 'status:' + xhr.status;
@@ -124,37 +130,45 @@ function uploadFile(file) {
         console.log(e.target);
         console.log(e.target.result);
 
+        getOAuthToken();
+
         let array = new Uint8Array(e.target.result);
         let pt = CryptoJS.enc.u8array.parse(array);
-        let encrypted = CryptoJS.AES.encrypt(pt, "AAA");
-        let arr = CryptoJS.enc.u8array.stringify(encrypted.ciphertext);
 
-        let salt = CryptoJS.lib.WordArray.random(128 / 8);
-        let iv = CryptoJS.lib.WordArray.random(128 / 8);
-        let encrypted1 = CryptoJS.AES.encrypt(pt, "AAA", {
-            iv: iv,
-            padding: CryptoJS.pad.Pkcs7,
-            mode: CryptoJS.mode.CBC
+        let encKey = undefined;
+        chrome.storage.local.get('encryprionKey', function (data) {
+            encKey = data.encryprionKey;
+            let encrypted = CryptoJS.AES.encrypt(pt, encKey);
+            let arr = CryptoJS.enc.u8array.stringify(encrypted.ciphertext);
+
+            let salt = CryptoJS.lib.WordArray.random(128 / 8);
+            let iv = CryptoJS.lib.WordArray.random(128 / 8);
+            let encrypted1 = CryptoJS.AES.encrypt(pt, "AAA", {
+                iv: iv,
+                padding: CryptoJS.pad.Pkcs7,
+                mode: CryptoJS.mode.CBC
+            });
+            let transitmessage = salt.toString() + iv.toString() + encrypted.toString();
+
+            //let decrypted = CryptoJS.AES.decrypt(encrypted, "AAA");
+            //let arr = CryptoJS.enc.u8array.stringify(decrypted);
+
+
+            let dropboxToken = "ngn5QWkYQ6AAAAAAAAAAFyI3UQqj8c3vdIQSAJrtVA9UAds_agDsqiRh4c5wJF6a";
+            xhr.open('POST', 'https://content.dropboxapi.com/2/files/upload');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.setRequestHeader('Dropbox-API-Arg', JSON.stringify({
+                path: '/' + file.name,
+                mode: 'add',
+                autorename: true,
+                mute: false
+            }));
+
+            //xhr.send(arr);
+            xhr.send(transitmessage);
         });
-        let transitmessage = salt.toString() + iv.toString() + encrypted.toString();
-
-        //let decrypted = CryptoJS.AES.decrypt(encrypted, "AAA");
-        //let arr = CryptoJS.enc.u8array.stringify(decrypted);
-
-
-        let dropboxToken = "ngn5QWkYQ6AAAAAAAAAAFyI3UQqj8c3vdIQSAJrtVA9UAds_agDsqiRh4c5wJF6a";
-        xhr.open('POST', 'https://content.dropboxapi.com/2/files/upload');
-        xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
-        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-        xhr.setRequestHeader('Dropbox-API-Arg', JSON.stringify({
-            path: '/' + file.name,
-            mode: 'add',
-            autorename: true,
-            mute: false
-        }));
-
-        //xhr.send(arr);
-        xhr.send(transitmessage);
+            
     }
     reader.readAsArrayBuffer(file);
 
@@ -176,14 +190,69 @@ function uploadFile(file) {
     };
 }
 
+function getOAuthToken() {
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://api.dropboxapi.com/2/auth/token/from_oauth1');
+    
+    //xhr.setRequestHeader('Authorization', 'OAuth oauth_version="1.0", oauth_signature_method="PLAINTEXT", oauth_consumer_key="0rc5mtk4tias544", oauth_signature="6gos8voaa7hzzgx"');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + "MHJjNW10azR0aWFzNTQ0OjZnb3M4dm9hYTdoenpneA==");
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Dropbox-API-Arg', JSON.stringify({
+        oauth1_token: "0rc5mtk4tias544",
+        oauth1_token_secret: "6gos8voaa7hzzgx"
+    }));
+    xhr.send();
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == XMLHttpRequest.DONE) {
+            if (xhr.status == 200) {
+                let oauth_token = xhr.response;
+            } else {
+                let msg = 'status:' + xhr.status;
+                console.log(msg + 'Unable to download file');
+            }
+        }
+    };
+
+
+}
+
+isDraggedItemIsFile = function (e, i) {
+    if (e.dataTransfer.files.length == 0) {
+        return false;
+    }
+    if (e.dataTransfer.items) {
+        if (typeof (e.dataTransfer.items[i].webkitGetAsEntry) == "function") {
+            return e.dataTransfer.items[i].webkitGetAsEntry().isFile;
+        } else if (typeof (e.dataTransfer.items[i].getAsEntry) == "function") {
+            return e.dataTransfer.items[i].getAsEntry().isFile;
+        }
+    }
+    return true;
+};
+
 function handleFileSelect(evt) {
     evt.stopPropagation();
     evt.preventDefault();
     let files = evt.dataTransfer.files;
-    
-    for (let i in files) {
-        uploadFile(files[i]);
+    //получить путь к файлам через пупть папки в системе
+    for (let i = 0; i < files.length; i++) {
+        if (isDraggedItemIsFile(evt, i)) {
+            uploadFile(files[i]);
+        } else {
+            console.log("Directory");
+            let xhr = new XMLHttpRequest();
+            let dropboxToken = "ngn5QWkYQ6AAAAAAAAAAFyI3UQqj8c3vdIQSAJrtVA9UAds_agDsqiRh4c5wJF6a";
+            xhr.open('POST', 'https://api.dropboxapi.com/2/files/create_folder_v2');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({
+                path: '/' + files[i].name,
+                autorename: true,
+            }));
+        }
     }
+    
 }
 
 function handleDragOver(evt) {

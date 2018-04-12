@@ -1,37 +1,19 @@
 document.addEventListener('DOMContentLoaded', function () {
+    if ((localStorage["encryprionKey"] !== null) && (localStorage["encryprionKey"] !== undefined)) {
+        document.getElementById("keyInput").value = localStorage["encryprionKey"];
+    }
+
     enableCrypt.addEventListener('click', function () {
         let key = document.getElementById("keyInput").value;
+        if (key.length == 0)
+            return alert("Enter the key");
         if (key.length < 5)
-            return alert("Too easy Keyword");
-        localStorage["encryprionKey"] = document.getElementById("keyInput").value;
-        alert("Your encryprion key" + localStorage["encryprionKey"]);
-    });
+            return alert("Too easy key");
+        chrome.storage.local.set({ encryprionKey: key }, function () {
+            alert("Key successfully saved!");
+        });
 
-    
-    //"default_popup": "popup.html"
-
-
-
-
-    //alert(xhr);
-    //var req = new XMLHttpRequest();
-    //req.open('GET', document.location, false);
-    //req.send(null);
-    //var headers = req.getAllResponseHeaders().toLowerCase();
-    //alert(headers);
-
-    //xhr = new XMLHttpRequest();
-    //xhr.onreadystatechange = function () {
-    //    alert(2);
-    //    if (xhr.readyState == 4) {
-    //        if (xhr.responseText) {
-    //            var xmlDoc = xhr.responseText;
-
-    //            var imgs = xmlDoc.match(/http:\/\/imgsrc.hubblesite.org\/hu\/db\/images\/hs-[0-9]{4}-[0-9]{2}-[a-z]/g);
-    //            var hrefs = xmlDoc.match(/gallery\/wallpaper\/pr[0-9]{4,}[a-z]/g);
-    //            alert(imgs);
-    //            alert(hrefs);
-    //        }
-    //    }
-    //}
-});
+        //localStorage["encryprionKey"] = document.getElementById("keyInput").value;
+        //alert("Key successfully saved!");
+    }, false);
+}, false);
