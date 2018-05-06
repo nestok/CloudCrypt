@@ -66,6 +66,8 @@ function downloadClick(evt) {
     //let index = fileLink.lastIndexOf("?role");
     //let filepath = fileLink.substring(0, fileLink.lastIndexOf("?role")).replace("https://www.dropbox.com/preview", "");
 
+
+
     let filepath = undefined;
     let fileName = undefined;
     let path = getPathToFile();
@@ -75,7 +77,13 @@ function downloadClick(evt) {
             parent = parent.parentNode;
         }
         filepath = path + '/' + fileName;
-        downloadFile(filepath, false);
+
+        let fileLine = parent.parentNode;
+        let noFolderDate = fileLine.getElementsByClassName("mc-media-cell-text mc-media-cell-text-title");
+        if (noFolderDate[1].children[0] != undefined)
+            downloadFolder(filepath, true);
+        else
+            downloadFile(filepath, false);
     }
     else {
         let downloadFileLine = document.getElementsByClassName('mc-media-row-selected');
@@ -83,8 +91,9 @@ function downloadClick(evt) {
             zipObj = {
                 currentFilesCount: 0,
                 zip: new JSZip(),
+                maxFilesCount: downloadFileLine.length,
                 tryToDownloadZip: function () {
-                    if (this.currentFilesCount == downloadFileLine.length) {
+                    if (this.currentFilesCount == this.maxFilesCount) {
                         this.zip.generateAsync({ type: "blob" }).then(function (content) {
                             saveAs(content, "Dropbox.zip");
                         });
@@ -94,19 +103,91 @@ function downloadClick(evt) {
             }
             
 
-            for (i = 0; i < downloadFileLine.length; i++) {
+            for (let i = 0; i < downloadFileLine.length; i++) {
                 fileName = downloadFileLine[i].getAttribute("data-filename");
                 filepath = path + '/' + fileName;
-                
+
+                let fileLine = downloadFileLine[i];
+                let noFolderDate = fileLine.getElementsByClassName("mc-media-cell-text mc-media-cell-text-title");
+                if (noFolderDate[1].children[0] != undefined){
+                    zipObj.zip.folder(fileName);
+                    zipObj.maxFilesCount--;
+                    downloadFolder(filepath, false);
+                }
+                    
+                else
                 downloadFile(filepath, true);
             }
         }
         else {
             fileName = downloadFileLine[0].getAttribute("data-filename");
             filepath = path + '/' + fileName;
-            downloadFile(filepath, false);
+
+            let fileLine = downloadFileLine[0];
+            let noFolderDate = fileLine.getElementsByClassName("mc-media-cell-text mc-media-cell-text-title");
+            if (noFolderDate[1].children[0] != undefined)
+                downloadFolder(filepath, true);
+            else
+                downloadFile(filepath, false);
         }  
     }
+}
+
+function downloadFolder(folderpath, isZip) {
+    let xhr = new XMLHttpRequest();
+    chrome.storage.local.get('oauth2token', function (data) {
+        let dropboxToken = data.oauth2token;
+        xhr.open('POST', 'https://api.dropboxapi.com/2/files/list_folder');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + dropboxToken);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                let folderEntry = JSON.parse(xhr.response);
+                let files = [];
+
+                for (let i = 0; i < folderEntry.entries.length; i++){
+                    let file = folderEntry.entries[i];
+                    if (file[".tag"] == "file")
+                        files.push(file);
+                }
+                if (isZip) {
+                    zipObj = {
+                        currentFilesCount: 0,
+                        zip: new JSZip(),
+                        maxFilesCount: files.length,
+                        tryToDownloadZip: function () {
+                            if (this.currentFilesCount == this.maxFilesCount) {
+                                let folderName = folderpath.replace(/^.*[\\\/]/, '');
+                                this.zip.generateAsync({ type: "blob" }).then(function (content) {
+                                    saveAs(content, folderName + ".zip");
+                                });
+                                this.currentFilesCount = 0;
+                            }
+                        }
+                    }
+                }
+                else
+                    zipObj.maxFilesCount += files.length;
+                for (let i = 0; i < files.length; i++)
+                    downloadFile(folderpath + "/" + files[i].name, true);
+            }
+            else {
+                let msg = 'status:' + xhr.status;
+                let errorMessage = xhr.response || 'Unable to get into folder';
+                console.log(msg + errorMessage);
+            }
+        };
+
+        xhr.send(JSON.stringify({
+            path: folderpath,
+            recursive: false,
+            include_media_info: false,
+            include_deleted: false,
+            include_has_explicit_shared_members: false,
+            include_mounted_folders: true
+        }));
+    });
 }
 
 function getPathToFile() {
@@ -120,7 +201,6 @@ function getPathToFile() {
 }
 
 function downloadFile(path, isZip) {
-    let dropboxToken = undefined;
     chrome.storage.local.get('oauth2token', function (data) {
         let dropboxToken = data.oauth2token;
         let xhr = new XMLHttpRequest();
@@ -155,7 +235,7 @@ function downloadFile(path, isZip) {
                         let arr = CryptoJS.enc.u8array.stringify(decrypted);
                         let filename = path.replace(/^.*[\\\/]/, '');
                         if (isZip) {
-                            zipObj.zip.file(filename, arr);
+                            zipObj.zip.file(path, arr);
                             zipObj.currentFilesCount++;
                             zipObj.tryToDownloadZip();
                         }
@@ -209,8 +289,6 @@ function uploadFile(file) {
             //let decrypted = CryptoJS.AES.decrypt(encrypted, "AAA");
             //let arr = CryptoJS.enc.u8array.stringify(decrypted);
 
-
-            let dropboxToken = undefined;
             chrome.storage.local.get('oauth2token', function (data) {
                 let dropboxToken = data.oauth2token;
                 xhr.open('POST', 'https://content.dropboxapi.com/2/files/upload');
