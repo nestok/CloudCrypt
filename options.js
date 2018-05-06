@@ -50,7 +50,9 @@ function getAccessToken(tokenCode, key) {
 }
 
 function saveCurrentUserSettings(oauthToken, key) {
-    //здесь нужно хешировать ключ и токен
+    let hashKey = key.hashCode();
+    
+
     chrome.storage.local.set({ encryprionKey: key }, function () {
         alert("Key successfully saved!");
     });
@@ -58,3 +60,14 @@ function saveCurrentUserSettings(oauthToken, key) {
         alert("Token successfully saved!");
     });
 }
+
+//String.prototype.hashCode = function () {
+//    var hash = 0;
+//    if (this.length == 0) return hash;
+//    for (i = 0; i < this.length; i++) {
+//        char = this.charCodeAt(i);
+//        hash = ((hash << 5) - hash) + char;
+//        hash = hash & hash; // Convert to 32bit integer
+//    }
+//    return hash;
+//}

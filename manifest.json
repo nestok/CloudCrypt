@@ -13,7 +13,7 @@
     {
       "matches": [ "*://*/*" ],
 	  "css": [ "css/bootstrap.css", "css/Style.css" ],
-      "js": [ "content.js", "CryptoJS.js" ]
+      "js": [  "jszip.js", "content.js", "CryptoJS.js", "FileSaver.js" ]
     }
   ],
   "browser_action": {

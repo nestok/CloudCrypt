@@ -21,16 +21,17 @@ function enableEvents() {
             elements[i].addEventListener('click', downloadClick, false);
             console.log(elements[i]);
         }
+        
+
 
         //Btn search input file (don't working)
-        //let elements = document.getElementsByTagName('input');
-        //for (let i = 0; i < elements.length; i++) {
-        //    if ((elements[i].getAttribute("type") == "file") && (elements[i].hasAttribute("multiple")) && (elements[i].hasAttribute("accept"))) {
-        //        let input = elements[i];
+        //let inelements = document.getElementsByTagName('input');
+        //for (let i = 0; i < inelements.length; i++) {
+        //    if ((inelements[i].getAttribute("type") == "file")){// && (inelements[i].hasAttribute("multiple")) && (inelements[i].hasAttribute("accept"))) {
+        //        let input = inelements[i];
         //        console.log(input);
         //        input.addEventListener("change", function (event) {
-        //            console.log(input);
-
+        //            console.log(this.files);
         //            let files = event.target.files;
         //            let i = 0, len = files.length;
 
@@ -46,14 +47,12 @@ function enableEvents() {
     }, false);
 }
 
-
-
 function downloadClick(evt) {
     evt.stopPropagation();
     evt.preventDefault();
-    let fileLink = undefined;
 
     //До обновления разметки
+    //let fileLink = undefined;
     //if (this.attributes.hasOwnProperty("role")) {
     //    let parent = this.parentNode;
     //    while (!(fileLink = parent.parentNode.getAttribute("href"))) {
@@ -67,30 +66,60 @@ function downloadClick(evt) {
     //let index = fileLink.lastIndexOf("?role");
     //let filepath = fileLink.substring(0, fileLink.lastIndexOf("?role")).replace("https://www.dropbox.com/preview", "");
 
-
-
+    let filepath = undefined;
+    let fileName = undefined;
+    let path = getPathToFile();
     if (this.attributes.hasOwnProperty("role")) {
         let parent = this.parentNode;
         while (!(fileName = parent.parentNode.getAttribute("data-filename"))) {
             parent = parent.parentNode;
         }
+        filepath = path + '/' + fileName;
+        downloadFile(filepath, false);
     }
     else {
         let downloadFileLine = document.getElementsByClassName('mc-media-row-selected');
-        fileName = downloadFileLine[0].getAttribute("data-filename");
+        if (downloadFileLine.length > 1) {
+            zipObj = {
+                currentFilesCount: 0,
+                zip: new JSZip(),
+                tryToDownloadZip: function () {
+                    if (this.currentFilesCount == downloadFileLine.length) {
+                        this.zip.generateAsync({ type: "blob" }).then(function (content) {
+                            saveAs(content, "Dropbox.zip");
+                        });
+                        this.currentFilesCount = 0;
+                    }
+                }
+            }
+            
+
+            for (i = 0; i < downloadFileLine.length; i++) {
+                fileName = downloadFileLine[i].getAttribute("data-filename");
+                filepath = path + '/' + fileName;
+                
+                downloadFile(filepath, true);
+            }
+        }
+        else {
+            fileName = downloadFileLine[0].getAttribute("data-filename");
+            filepath = path + '/' + fileName;
+            downloadFile(filepath, false);
+        }  
     }
-    let path = getPathToFile();
-    let filepath = path + '/' + fileName;
-    downloadFile(filepath);
 }
 
 function getPathToFile() {
     let currentHref = document.location.href;
-    let path = currentHref.replace("https://www.dropbox.com/home", "");
+    let path = undefined;
+    if (currentHref == "https://www.dropbox.com/h")
+        path = "";
+    else
+        path = currentHref.replace("https://www.dropbox.com/home", "");
     return path;
 }
 
-function downloadFile(path) {
+function downloadFile(path, isZip) {
     let dropboxToken = undefined;
     chrome.storage.local.get('oauth2token', function (data) {
         let dropboxToken = data.oauth2token;
@@ -124,14 +153,21 @@ function downloadFile(path) {
 
                         })
                         let arr = CryptoJS.enc.u8array.stringify(decrypted);
-
-                        window.URL = window.URL || window.webkitURL;
-                        let blob = new Blob([arr]);//, { type: "application/pdf" });
-                        let a = document.createElement('a');
-                        let filename = path.replace(/^.*[\\\/]/, '')
-                        a.download = filename;
-                        a.href = window.URL.createObjectURL(blob);
-                        a.click();
+                        let filename = path.replace(/^.*[\\\/]/, '');
+                        if (isZip) {
+                            zipObj.zip.file(filename, arr);
+                            zipObj.currentFilesCount++;
+                            zipObj.tryToDownloadZip();
+                        }
+                        else {
+                            window.URL = window.URL || window.webkitURL;
+                            let blob = new Blob([arr]);//, { type: "application/pdf" });
+                            let a = document.createElement('a');
+                            
+                            a.download = filename;
+                            a.href = window.URL.createObjectURL(blob);
+                            a.click();
+                        }
                     });
                 } else {
                     let msg = 'status:' + xhr.status;
