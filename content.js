@@ -145,11 +145,14 @@ function downloadFolder(folderpath, isZip) {
             if (xhr.status === 200) {
                 let folderEntry = JSON.parse(xhr.response);
                 let files = [];
+                let folders = [];
 
                 for (let i = 0; i < folderEntry.entries.length; i++){
                     let file = folderEntry.entries[i];
                     if (file[".tag"] == "file")
                         files.push(file);
+                    if (file[".tag"] == "folder")
+                        folders.push(file);
                 }
                 if (isZip) {
                     zipObj = {
@@ -171,6 +174,8 @@ function downloadFolder(folderpath, isZip) {
                     zipObj.maxFilesCount += files.length;
                 for (let i = 0; i < files.length; i++)
                     downloadFile(folderpath + "/" + files[i].name, true);
+                for (let i = 0; i < folders.length; i++)
+                    downloadFolder(folderpath + "/" + folders[i].name, false);
             }
             else {
                 let msg = 'status:' + xhr.status;
