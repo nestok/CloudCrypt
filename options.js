@@ -5,17 +5,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     enableCrypt.addEventListener('click', function () {
         let key = document.getElementById("keyInput").value;
+        let algorithm = document.getElementById("algorithmSelect").value;
         let tokenCode = document.getElementById("codeInput").value;
         if (key.length == 0)
             return alert("Enter the key");
         if (key.length < 5)
             return alert("Too easy key");
         console.log(tokenCode.length);
-        getAccessToken(tokenCode, key);
+        getAccessToken(tokenCode, key, algorithm);
     }, false);
 }, false);
 
-function getAccessToken(tokenCode, key) {
+function getAccessToken(tokenCode, key, algorithm) {
     let xhr = new XMLHttpRequest();
     xhr.open('POST', 'https://api.dropboxapi.com/oauth2/token');
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -37,7 +38,7 @@ function getAccessToken(tokenCode, key) {
     xhr.onload = function () {
         if (xhr.status === 200) {
             let oauthUserInfo = JSON.parse(xhr.response);
-            saveCurrentUserSettings(oauthUserInfo.access_token, key);
+            saveCurrentUserSettings(oauthUserInfo.access_token, key, algorithm);
         }
         else {
             let msg = 'status:' + xhr.status;
@@ -49,25 +50,14 @@ function getAccessToken(tokenCode, key) {
     xhr.send(formBody);
 }
 
-function saveCurrentUserSettings(oauthToken, key) {
-    let hashKey = key.hashCode();
-    
-
+function saveCurrentUserSettings(oauthToken, key, cryptAlgorithm) {
     chrome.storage.local.set({ encryprionKey: key }, function () {
         alert("Key successfully saved!");
     });
     chrome.storage.local.set({ oauth2token: oauthToken }, function () {
         alert("Token successfully saved!");
     });
+    chrome.storage.local.set({ algorithm: cryptAlgorithm }, function () {
+        alert("Algorithm successfully saved!");
+    });
 }
-
-//String.prototype.hashCode = function () {
-//    var hash = 0;
-//    if (this.length == 0) return hash;
-//    for (i = 0; i < this.length; i++) {
-//        char = this.charCodeAt(i);
-//        hash = ((hash << 5) - hash) + char;
-//        hash = hash & hash; // Convert to 32bit integer
-//    }
-//    return hash;
-//}
